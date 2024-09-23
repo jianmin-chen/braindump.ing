@@ -1,0 +1,11 @@
+.{
+    .name = "braindump.ing",
+    .version = "0.0.1",
+    .paths = .{ "src/", "build.zig", "build.zig.zon" },
+    .dependencies = .{
+        .httpz = .{
+            .url = "git+https://github.com/karlseguin/http.zig?ref=master#da9e944de0be6e5c67ca711dd238ce82d81558b4",
+            .hash = "12201df692f62d526fdf94e6000cf8de2142edf27484887e2e8f1ec5db4c9b808e5c",
+        },
+    },
+}
