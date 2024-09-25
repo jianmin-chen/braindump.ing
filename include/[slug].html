@@ -1,16 +1,25 @@
+<header></header>
 <div id="post-wrapper">
-  <header></header>
   <article>
     <h1>{{ title }}</h1>
     {{ post }}
-    <!-- <div class="demo">
+    <div class="demo">
       <div class="comments">
         <h2>Comments</h2>
-        {{ hackernews }} {{ comments }}
+        {{ hackernews }}
       </div>
-    </div> -->
+    </div>
   </article>
   <aside>
     <!-- {{ toc }} -->
   </aside>
+  <script>
+    window.onload = () => {
+      document.querySelectorAll('pre div').forEach(div => {
+        Prism.highlightElement(div)
+      })
+    }
+  </script>
+  <script src="/scripts/components/picker.js"></script>
+  <script src="/scripts/components/comment.js"></script>
 </div>

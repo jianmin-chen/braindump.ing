@@ -1,4 +1,4 @@
 .zig-cache
 .env
 test.*
-out
+node_modules

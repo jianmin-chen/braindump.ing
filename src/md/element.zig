@@ -41,6 +41,19 @@ pub fn addChild(self: *Self, child: Self) !void {
     try self.children.append(child);
 }
 
+pub fn toText(self: *Self, output: *ArrayList(u8)) !void {
+    const writer = output.writer();
+
+    if (self.props.get("nodeValue")) |node_value| {
+        try writer.print("{s}", .{node_value});
+        return;
+    }
+
+    for (self.children.items) |child| {
+        try @constCast(&child).toText(output);
+    }
+}
+
 pub fn toHtml(self: *Self, output: *ArrayList(u8)) !void {
     const writer = output.writer();
 

@@ -18,12 +18,11 @@ pub const TokenType = enum {
     heading,
     colon,
     exclaim,
+    star,
     bracket,
     paren,
     code,
     code_block,
-    italic,
-    bold,
     plain,
     nl,
     eof
@@ -91,7 +90,7 @@ pub const Lexer = struct {
                 if (self.col == 1 and self.peek() == '`' and self.peekAhead(1) == '`') {
                     _ = self.advance();
                     _ = self.advance();
-                    while (self.peek() != '`' and self.peekAhead(1) != '`' and self.peekAhead(2) != '`') {
+                    while (self.peek() != '`' or self.peekAhead(1) != '`' or self.peekAhead(2) != '`') {
                         _ = self.advance();
                         if (self.raw.len - self.current < 3) {
                             try self.addToken(.plain);
@@ -107,7 +106,7 @@ pub const Lexer = struct {
                 try self.wrap(.code, '`');  // `` is not a recursive element
             },
             '*' => {
-                try self.wrap(.italic, '*');
+                try self.addToken(.star);
             },
             '#' => {
                 while (self.peek() == '#') {
@@ -243,7 +242,9 @@ pub fn toHtml(allocator: Allocator, raw: []const u8) !Self {
     };
     try self.parse();
 
-    try self.pluginPass();
+    var toc = plugins.TableOfContents.init(self.allocator);
+    defer toc.deinit();
+    try toc.operate(&self.ast);
 
     var html = ArrayList(u8).init(self.allocator);
     defer html.deinit();
@@ -269,12 +270,12 @@ fn fix(self: *Self) void {
     _ = self;
 }
 
-fn pluginPass(self: *Self) !void {
-    var toc = plugins.TableOfContents.init(self.allocator);
-    defer toc.deinit();
+// fn pluginPass(self: *Self) !void {
+//     var toc = plugins.TableOfContents.init(self.allocator);
+//     defer toc.deinit();
 
-    try toc.operate(&self.ast);
-}
+//     try toc.operate(&self.ast);
+// }
 
 fn clearFrontmatter(self: *Self) void {
     var it = self.frontmatter.keyIterator();
@@ -309,21 +310,10 @@ fn parseFrontmatter(self: *Self) ParserError!void {
 
 fn parse(self: *Self) !void {
     self.start = self.current;
-    // for (self.tokens.items[self.start..self.start + 5]) |token| {
-    //     const val = self.raw[token.start..token.start + token.length];
-    //     if (std.mem.eql(u8, val, "\n")) {
-    //         std.debug.print("{any}\n", .{token});
-    //     } else {
-    //         std.debug.print("{any} {s}\n", .{token, val});
-    //     }
-    // }
-
-    var max: usize = 0;
     while (!self.isAtEnd()) {
         self.skipNewlines();
-        try self.parseBlock(&self.ast);
-        max += 1;
-        if (max == 21) return;
+        if (!self.isAtEnd())
+            try self.parseBlock(&self.ast);
     }
 }
 
@@ -333,15 +323,19 @@ fn parseBlock(self: *Self, parent: *Element) !void {
         .blockquote => {
             var blockquote = Element.init(self.allocator, "blockquote");
             var p = Element.init(self.allocator, "p");
-            try self.parseInline(&p);
+            while (!self.match(.nl))
+                try self.parseInline(&p);
             try blockquote.addChild(p);
             try parent.addChild(blockquote);
         },
         .heading => {
             try self.temp_strings.append(try std.fmt.allocPrint(self.allocator, "h{d}", .{token.length}));
-            const tag = self.temp_strings.items[self.temp_strings.items.len - 1];
-            var heading = Element.init(self.allocator, tag);
-            try self.parseInline(&heading);
+            var heading = Element.init(
+                self.allocator,
+                self.temp_strings.items[self.temp_strings.items.len - 1]
+            );
+            while (!self.match(.nl))
+                try self.parseInline(&heading);
             try parent.addChild(heading);
         },
         .exclaim => {
@@ -358,6 +352,34 @@ fn parseBlock(self: *Self, parent: *Element) !void {
             );
             try parent.addChild(img);
         },
+        .code_block => {
+            const block = self.raw[token.start..token.start + token.length];
+            const end = std.mem.indexOf(u8, block, "\n") orelse unreachable;
+            try self.temp_strings.append(try std.fmt.allocPrint(self.allocator, "language-{s}", .{block[3..end]}));
+            var pre = Element.init(self.allocator, "pre");
+            try pre.addProp(
+                "class",
+                self.temp_strings.items[self.temp_strings.items.len - 1]
+            );
+
+            var lines = std.mem.splitScalar(u8, self.raw[token.start + end + 1..token.start + token.length - 4], '\n');
+            while (lines.next()) |line| {
+                var div = Element.init(self.allocator, "div");
+                try div.addProp(
+                    "class",
+                    self.temp_strings.items[self.temp_strings.items.len - 1]
+                );
+                try div.addChild(
+                    try Element.textNode(
+                        self.allocator,
+                        if (line.len == 0) "\n" else line
+                    )
+                );
+                try pre.addChild(div);
+            }
+
+            try parent.addChild(pre);
+        },
         else => {
             var p = Element.init(self.allocator, "p");
             try p.addChild(
@@ -366,7 +388,8 @@ fn parseBlock(self: *Self, parent: *Element) !void {
                     self.raw[token.start..token.start + token.length]
                 )
             );
-            try self.parseInline(&p);
+            while (!self.match(.nl))
+                try self.parseInline(&p);
             try parent.addChild(p);
         }
     }
@@ -374,35 +397,65 @@ fn parseBlock(self: *Self, parent: *Element) !void {
 
 fn parseInline(self: *Self, parent: *Element) !void {
     var push = parent;
-    while (!self.match(.nl)) {
-        const token = self.advance();
-        switch (token.kind) {
-            .plain, .colon, .exclaim => {
-                try push.addChild(
-                    try Element.textNode(
-                        self.allocator,
-                        self.raw[token.start..token.start + token.length]
-                    )
-                );
-            },
-            .code => {
-                var code = Element.init(self.allocator, "code");
-                try code.addChild(
-                    try Element.textNode(
-                        self.allocator,
-                        self.raw[token.start + 1..token.start + token.length - 1]
-                    )
-                );
-                try push.addChild(code);
-            },
-            else => {
+    const token = self.advance();
+    switch (token.kind) {
+        .plain, .colon, .exclaim => {
+            try push.addChild(
+                try Element.textNode(
+                    self.allocator,
+                    self.raw[token.start..token.start + token.length]
+                )
+            );
+        },
+        .code => {
+            var code = Element.init(self.allocator, "code");
+            try code.addChild(
+                try Element.textNode(
+                    self.allocator,
+                    self.raw[token.start + 1..token.start + token.length - 1]
+                )
+            );
+            try push.addChild(code);
+        },
+        .star => {
+            if (self.match(.star)) {
+                _ = self.advance();
+
+                const b = Element.init(self.allocator, "b");
+                std.debug.print("{s}\n", .{@tagName(self.peek().kind)});
+
+                // while (!self.match(.star) and !self.matchAhead(1, .star)) {
+                //     if (self.matchAhead(1, .eof))
+                //         std.debug.panic("this shouldn't happen", .{});  // ! This should fall through and attempt to parse as italic, not throw an error.
+                //     try self.parseInline(&b);
+                //     break;
+                // }
+
+                _ = try self.eat(.plain);
+                _ = try self.eat(.star);
+                _ = try self.eat(.star);
+                try push.addChild(b);
+                return;
             }
+
+            var i = Element.init(self.allocator, "i");
+            while (!self.match(.star)) {
+                if (self.isAtEnd())
+                    return ParserError.UnexpectedToken;
+                try self.parseInline(&i);
+            }
+            _ = try self.eat(.star);
+            try push.addChild(i);
+        },
+        else => {
         }
     }
 }
 
 fn skipNewlines(self: *Self) void {
-    while (self.consume(.nl)) {}
+    while (self.consume(.nl)) {
+        if (self.isAtEnd()) break;
+    }
 }
 
 fn gather(self: *Self, kind: TokenType) Token {
@@ -444,8 +497,19 @@ fn peek(self: *Self) Token {
     return self.tokens.items[self.current];
 }
 
+fn peekAhead(self: *Self, n: usize) Token {
+    assert(self.current + n < self.tokens.items.len);
+    return self.tokens.items[self.current + n];
+}
+
 fn match(self: *Self, kind: TokenType) bool {
     if (self.peek().kind == kind)
+        return true;
+    return false;
+}
+
+fn matchAhead(self: *Self, n: usize, kind: TokenType) bool {
+    if (self.peekAhead(n).kind == kind)
         return true;
     return false;
 }
@@ -459,5 +523,5 @@ fn consume(self: *Self, kind: TokenType) bool {
 }
 
 fn isAtEnd(self: *Self) bool {
-    return self.current >= self.tokens.items.len;
+    return self.match(.eof);
 }

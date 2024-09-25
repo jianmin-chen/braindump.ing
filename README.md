@@ -8,6 +8,6 @@ Extra operations on tree before converting to HTML: assign unique IDs to heading
 
 Converting tree to HTML:
 
-A custom React library based on [this](https://pomb.us/build-your-own-react/) for fun is used for functionality of: the color picker; the comment form; the subscribe form; and the draft page.
+A custom React library based on [this](https://pomb.us/build-your-own-react/) with a few tweaks for fun is used for functionality of: the color picker; the comment form; the subscribe form; and the draft page. At some point I want to write a fully functional clone of React from scratch to understand how it works.
 
 GitHub action: runs `sass include/styles/globals.scss out/styles/globals.scss --no-source-map`.

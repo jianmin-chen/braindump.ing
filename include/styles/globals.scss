@@ -50,7 +50,7 @@
   --border: #efefef;
   --darker-border: #dedede;
   --background: #f5f2f0;
-  --theme: green;
+  --theme: #690;
   --foreground: white;
 
   --border-width: 14px;
@@ -96,7 +96,7 @@ button[type='submit'] {
   font-size: inherit;
   padding: 7px 14px;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1);
-  transform: transform 0.1s ease-in-out;
+  transform: transform 0.1s ease-in;
 
   &:hover,
   &:focus {
@@ -208,7 +208,7 @@ textarea {
     max-width: var(--post-width);
 
     > div > blockquote {
-      font-style: italic;
+      /* font-style: italic; */
       position: relative;
 
       &::before {
@@ -240,6 +240,7 @@ textarea {
     h1 {
       font-size: 2.4rem;
       margin-top: 0;
+      margin-bottom: 0;
     }
 
     h2 {
@@ -287,7 +288,7 @@ textarea {
       margin-top: 1.5em;
       margin-bottom: 1.5em;
       margin-left: calc(
-        -1 * var(--empty-col-width) - 2rem + (var(--border-width) - 1)
+        (-1 * var(--empty-col-width)) - 2rem + (var(--border-width) - 1px)
       );
       padding-left: calc(var(--empty-col-width) - var(--border-width));
       background-color: var(--background);
@@ -297,13 +298,11 @@ textarea {
 
     pre {
       div {
+        border-left: 1px solid var(--darker-border);
+        padding-left: 2rem;
+
         span {
           background-color: transparent !important;
-
-          &:nth-child(1) {
-            border-left: 1px solid var(--darker-border);
-            padding-left: 2rem;
-          }
         }
       }
     }
@@ -316,7 +315,8 @@ textarea {
         margin-bottom: 0;
       }
 
-      > p {
+      > p,
+      .no-comments {
         font-family: var(--sans-serif);
         text-indent: 0;
         margin-top: 0;

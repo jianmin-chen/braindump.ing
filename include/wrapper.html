@@ -1,6 +1,7 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
+    <title>braindump.ing</title>
     <link href="/styles/globals.css" rel="stylesheet" />
     <link href="/styles/prism.css" rel="stylesheet" />
   </head>
@@ -8,10 +9,7 @@
     {{ template }}
     <footer>
       <div class="subscribe">
-        <form>
-          <input type="email" placeholder="jc@braindump.ing" />
-          <button type="submit">Subscribe</button>
-        </form>
+        <div id="subscribe"></div>
         <p>
           Sometimes I write posts! This happens at infrequent intervals so if
           you like what I write you can subscribe to get notified when I do.
@@ -33,5 +31,6 @@
       </div>
     </footer>
     <script src="/scripts/prism.js"></script>
+    <script src="/scripts/components/subscribe.js"></script>
   </body>
 </html>

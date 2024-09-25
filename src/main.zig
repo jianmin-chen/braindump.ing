@@ -1,6 +1,7 @@
 const std = @import("std");
 const md = @import("md/md.zig");
 const Template = @import("template.zig");
+const server = @import("server.zig");
 
 const Allocator = std.mem.Allocator;
 const StringHashMap = std.StringHashMap([]const u8);
@@ -41,7 +42,9 @@ pub fn main() !void {
                 try output(allocator, entry.name);
             }
         },
-        .serve => {}
+        .serve => {
+            try server.start(allocator);
+        }
     }
 }
 
@@ -85,6 +88,18 @@ fn output(allocator: Allocator, entry: []const u8) !void {
 
     try template.add_expression("title", converted.frontmatter.get("title") orelse unreachable);
     try template.add_expression("post", converted.output);
+
+    const hackernews = converted.frontmatter.get("hackernews") orelse "";
+    const html = try std.fmt.allocPrint(
+        allocator,
+        "<p>View the discussion on <a href='https://news.ycombinator.com/item?id={s}'>Hacker News</a>.</p>",
+        .{hackernews}
+    );
+    defer allocator.free(html);
+    if (hackernews.len == 0) {
+        try template.add_expression("hackernews", "");
+    } else
+        try template.add_expression("hackernews", html);
 
     try template.output();
 }
