@@ -1,4 +1,4 @@
-Static site generator for [braindump.ing](https://braindump.ing) written in Zig, with no dependencies (other than the standard lib) for generation and [Prism.js]() for code highlighting.
+Static site generator for [braindump.ing](https://braindump.ing) written in Zig 0.13.0, with no dependencies (other than the standard lib) for generation and [Prism.js]() for code highlighting.
 
 Pipeline: `/content` -> Zig parses Markdown in each file, generating a tree of elements -> Zig converts tree to HTML -> Zig outputs HTML for each post using template file `include/[slug].html` -> GitHub serves a static site with the output of `--build`, while no opts = spin up a server for comments and draft pages that require a password (which are left out when pushing to this public repo).
 
@@ -10,4 +10,4 @@ Converting tree to HTML:
 
 A custom React library based on [this](https://pomb.us/build-your-own-react/) with a few tweaks for fun is used for functionality of: the color picker; the comment form; the subscribe form; and the draft page. At some point I want to write a fully functional clone of React from scratch to understand how it works.
 
-GitHub action: runs `sass include/styles/globals.scss out/styles/globals.scss --no-source-map`.
+GitHub action: runs `sass include/styles/globals.scss docs/styles/globals.css --no-source-map`.

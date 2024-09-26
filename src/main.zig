@@ -1,7 +1,8 @@
 const std = @import("std");
 const md = @import("md/md.zig");
+const plugins = @import("md/plugins.zig");
 const Template = @import("template.zig");
-const server = @import("server.zig");
+const server = @import("server/server.zig");
 
 const Allocator = std.mem.Allocator;
 const StringHashMap = std.StringHashMap([]const u8);
@@ -62,11 +63,16 @@ fn output(allocator: Allocator, entry: []const u8) !void {
     _ = try file.readAll(buf);
     defer allocator.free(buf);
 
-    var converted = try md.toHtml(allocator, buf);
+    var toc = plugins.TableOfContents.init(allocator);
+    defer toc.deinit();
+
+    var converted = try md.toHtml(allocator, buf, .{&toc});
     defer converted.deinit();
 
     if (converted.frontmatter.get("title") == null)
         panic("Expected title in {s}.\n", .{entry});
+    if (converted.frontmatter.get("date") == null)
+        panic("Expected date in {s}.\n", .{entry});
 
     const template_path = try std.fs.path.join(allocator, &[_][]const u8{
         Template.static_dir,
@@ -86,20 +92,21 @@ fn output(allocator: Allocator, entry: []const u8) !void {
     var template = Template.create(allocator, template_path, output_path);
     defer template.deinit();
 
+    try template.add_expression("slug", std.mem.trim(u8, entry, ".md"));
     try template.add_expression("title", converted.frontmatter.get("title") orelse unreachable);
     try template.add_expression("post", converted.output);
 
-    const hackernews = converted.frontmatter.get("hackernews") orelse "";
-    const html = try std.fmt.allocPrint(
-        allocator,
-        "<p>View the discussion on <a href='https://news.ycombinator.com/item?id={s}'>Hacker News</a>.</p>",
-        .{hackernews}
-    );
-    defer allocator.free(html);
-    if (hackernews.len == 0) {
-        try template.add_expression("hackernews", "");
-    } else
-        try template.add_expression("hackernews", html);
+    // const hackernews = converted.frontmatter.get("hackernews") orelse "";
+    // const html = try std.fmt.allocPrint(
+    //     allocator,
+    //     "<p>View the discussion on <a href='https://news.ycombinator.com/item?id={s}'>Hacker News</a>.</p>",
+    //     .{hackernews}
+    // );
+    // defer allocator.free(html);
+    // if (hackernews.len == 0) {
+    //     try template.add_expression("hackernews", "");
+    // } else
+    //     try template.add_expression("hackernews", html);
 
     try template.output();
 }

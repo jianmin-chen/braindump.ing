@@ -7,7 +7,7 @@ const panic = std.debug.panic;
 
 pub const input_dir = "content";
 pub const static_dir = "include";
-pub const output_dir = "out";
+pub const output_dir = "docs";
 pub const post_dir = "post";
 
 const Self = @This();

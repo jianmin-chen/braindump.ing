@@ -1,6 +1,6 @@
 const std = @import("std");
-const Element = @import("element.zig");
 const plugins = @import("plugins.zig");
+const Element = @import("element.zig");
 
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
@@ -213,7 +213,7 @@ current: usize,
 
 temp_strings: ArrayList([]u8),
 
-pub fn toHtml(allocator: Allocator, raw: []const u8) !Self {
+pub fn toHtml(allocator: Allocator, raw: []const u8, pipeline: anytype) !Self {
     var self: Self = .{
         .allocator = allocator,
         .raw = raw,
@@ -242,9 +242,9 @@ pub fn toHtml(allocator: Allocator, raw: []const u8) !Self {
     };
     try self.parse();
 
-    var toc = plugins.TableOfContents.init(self.allocator);
-    defer toc.deinit();
-    try toc.operate(&self.ast);
+    inline for (pipeline) |stage| {
+        try stage.operate(self.ast);
+    }
 
     var html = ArrayList(u8).init(self.allocator);
     defer html.deinit();
@@ -269,13 +269,6 @@ fn fix(self: *Self) void {
     // Unexpected token, adopt as plain text.
     _ = self;
 }
-
-// fn pluginPass(self: *Self) !void {
-//     var toc = plugins.TableOfContents.init(self.allocator);
-//     defer toc.deinit();
-
-//     try toc.operate(&self.ast);
-// }
 
 fn clearFrontmatter(self: *Self) void {
     var it = self.frontmatter.keyIterator();

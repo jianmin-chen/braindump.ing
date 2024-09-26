@@ -1,7 +1,18 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1.0, width=device-width" />
+    <meta property="og:author" content="jc" />
+    <meta property="og:image" content="" />
+    <meta property="og:site_name" content="braindump.ing" />
+    <meta itemprop="image" content="" />
+    <meta name="author" content="jc" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="" />
+    <meta name="apple-mobile-web-app-title" content="braindump.ing" />
     <title>braindump.ing</title>
+
     <link href="/styles/globals.css" rel="stylesheet" />
     <link href="/styles/prism.css" rel="stylesheet" />
   </head>
@@ -9,6 +20,22 @@
     <header></header>
 <div id="post-wrapper">
   <article>
+    <div class="demo">
+      <nav>
+        <p>
+          <a href="/">
+            <i data-feather="corner-down-left"></i>
+            <span>HTTP and Forms</span>
+          </a>
+        </p>
+        <p>
+          <a href="/">
+            <span>Node.js</span>
+            <i data-feather="corner-down-right"></i>
+          </a>
+        </p>
+      </nav>
+    </div>
     <h1>Project: A Pixel Art Editor</h1>
     <div><p>The material from the previous chapters gives you all the elements you need to build a basic web application. In this chapter, we will do just that.</p><blockquote><p>I look at the many colors before me. I look at my blank canvas. Then, I try to apply colors like words that shape poems, like notes that shape music.</p></blockquote><p>Our application will be a pixel-drawing program that allows you to modify a picture pixel by pixel by manipulating a zoomed-in view of it, shown as a grid of colored squares. You can use the program to open image files, scribble on them with your mouse or other pointer device, and save them. This is what it will look like:</p><img alt="" src="https://eloquentjavascript.net/img/pixel_editor.png"/><p>Painting on a computer is great. You don’t need to worry about materials, skill, or talent. You just start smearing and see where you end up.</p><p>The interface for the application shows a big <code>&lt;canvas&gt;</code> element on top, with a number of form fields below it. The user draws on the picture by selecting a tool from a <code>&lt;select&gt;</code> field and then clicking, touching, or dragging across the canvas. There are tools for drawing single pixels or rectangles, for filling an area, and for picking a color from the picture.</p><h2> Components</h2><p>We will structure the editor interface as a number of <i>components</i>, objects that are responsible for a piece of the DOM and that may contain other components inside them.</p><p>The state of the application consists of the current picture, the selected tool, and the selected color. We’ll set things up so that the state lives in a single value and the interface components always base the way they look on the current state.</p><p>To see why this is important, let’s consider the alternative—distributing pieces of state throughout the interface. Up to a certain point, this is easier to program. We can just put in a color field and read its value when we need to know the current color.</p><p>But then we add the color picker—a tool that lets you click the picture to select the color of a given pixel. To keep the color field showing the correct color, that tool would have to know that the color field exists and update it whenever it picks a new color. If you ever add another place that makes the color visible , you have to update your color-changing code to keep that synchronized as well.</p><p>In effect, this creates a problem where each part of the interface needs to know about all other parts, which is not very modular. For small applications like the one in this chapter, that may not be a problem. For bigger projects, it can turn into a real nightmare.</p><p>To avoid this nightmare on principle, we’re going to be strict about <i>data flow</i>. There is a state, and the interface is drawn based on that state. An interface component may respond to user actions by updating the state, at which point the components get a chance to synchronize themselves with this new state.</p><p>In practice, each component is set up so that when it is given a new state, it also notifies its child components, insofar as those need to be updated. Setting this up is a bit of a hassle. Making this more convenient is the main selling point of many browser programming libraries. But for a small application like this, we can do it without such infrastructure.</p><p>Updates to the state are represented as objects, which we’ll call <i>actions</i>. Components may create such actions and <i>dispatch</i> them—give them to a central state management function. That function computes the next state, after which the interface components update themselves to this new state.</p><p>We’re taking the messy task of running a user interface and applying structure to it. Though the DOM-related pieces are still full of side effects, they are held up by a conceptually simple backbone: the state update cycle. The state determines what the DOM looks like, and the only way DOM events can change the state is by dispatching actions to the state.</p><p>There are <i>many</i> variants of this approach, each with its own benefits and problems, but their central idea is the same: state changes should go through a single well-defined channel, not happen all over the place.</p><p>Our components will be classes conforming to an interface. Their constructor is given a state—which may be the whole application state or some smaller value if it doesn’t need access to everything—and uses that to build up a <code>dom</code> property. This is the DOM element that represents the component. Most constructors will also take some other values that won’t change over time, such as the function they can use to dispatch an action.</p><p>Each component has a <code>syncState</code> method that is used to synchronize it to a new state value. The method takes one argument, the state, which is of the same type as the first argument to its constructor.</p><h2> The state</h2><p>The application state will be an object with <code>picture</code>, <code>tool</code>, and <code>color</code> properties. The picture is itself an object that stores the width, height, and pixel content of the picture. The pixels are stored in a single array, row by row, from top to bottom.</p><pre class="language-js"><div class="language-js">class Picture {</div><div class="language-js">  constructor(width, height, pixels) {</div><div class="language-js">    this.width = width;</div><div class="language-js">    this.height = height;</div><div class="language-js">    this.pixels = pixels;</div><div class="language-js">  }</div><div class="language-js">
 </div><div class="language-js">  static empty(width, height, color) {</div><div class="language-js">    let pixels = new Array(width * height).fill(color);</div><div class="language-js">    return new Picture(width, height, pixels);</div><div class="language-js">  }</div><div class="language-js">
@@ -27,25 +54,30 @@
 </div><div class="language-js">const baseTools = {draw, fill, rectangle, pick};</div><div class="language-js">
 </div><div class="language-js">const baseControls = [</div><div class="language-js">  ToolSelect, ColorSelect, SaveButton, LoadButton, UndoButton</div><div class="language-js">];</div><div class="language-js">
 </div><div class="language-js">function startPixelEditor({state = startState,</div><div class="language-js">                           tools = baseTools,</div><div class="language-js">                           controls = baseControls}) {</div><div class="language-js">  let app = new PixelEditor(state, {</div><div class="language-js">    tools,</div><div class="language-js">    controls,</div><div class="language-js">    dispatch(action) {</div><div class="language-js">      state = historyUpdateState(state, action);</div><div class="language-js">      app.syncState(state);</div><div class="language-js">    }</div><div class="language-js">  });</div><div class="language-js">  return app.dom;</div><div class="language-js">}</div></pre><p>When destructuring an object or array, you can use = after a binding name to give the binding a default value, which is used when the property is missing or holds <code>undefined</code>. The <code>startPixelEditor</code> function makes use of this to accept an object with a number of optional properties as an argument. If you don’t provide a <code>tools</code> property, for example, <code>tools</code> will be bound to <code>baseTools</code>.</p><p>This is how we get an actual editor on the screen:</p><pre class="language-js"><div class="language-js">&lt;div&gt;&lt;/div&gt;</div><div class="language-js">&lt;script&gt;</div><div class="language-js">  document.querySelector(&quot;div&quot;)</div><div class="language-js">    .appendChild(startPixelEditor({}));</div><div class="language-js">&lt;/script&gt;</div></pre><p>Go ahead and draw something.</p><h2> Why is this so hard?</h2><p>Browser technology is amazing. It provides a powerful set of interface building blocks, ways to style and manipulate them, and tools to inspect and debug your applications. The software you write for the browser can be run on almost every computer and phone on the planet.</p><p>At the same time, browser technology is ridiculous. You have to learn a large number of silly tricks and obscure facts to master it, and the default programming model it provides is so problematic that most programmers prefer to cover it in several layers of abstraction rather than deal with it directly.</p><p>While the situation is definitely improving, it mostly does so in the form of more elements being added to address shortcomings—creating even more complexity. A feature used by a million websites can’t really be replaced. Even if it could, it would be hard to decide what it should be replaced with.</p><p>Technology never exists in a vacuum—we’re constrained by our tools and the social, economic, and historical factors that produced them. This can be annoying, but it is generally more productive to try to build a good understanding of how the <i>existing</i> technical reality works—and why it is the way it is—than to rage against it or hold out for another reality.</p><p>New abstractions <i>can</i> be helpful. The component model and data flow convention I used in this chapter is a crude form of that. As mentioned, there are libraries that try to make user interface programming more pleasant. At the time of writing,  and  are popular choices, but there’s a whole cottage industry of such frameworks. If you’re interested in programming web applications, I recommend investigating a few of them to understand how they work and what benefits they provide.</p></div>
-    <div class="demo">
+    <!-- <div class="demo">
       <div class="comments">
         <h2>Comments</h2>
-        <p>View the discussion on <a href='https://news.ycombinator.com/item?id=143223'>Hacker News</a>.</p>
+        {{ hackernews }}
+        <div id="comments"></div>
       </div>
-    </div>
+    </div> -->
   </article>
   <aside>
     <!-- {{ toc }} -->
   </aside>
+  <script src="https://unpkg.com/feather-icons"></script>
   <script>
+    window.slug = '2024-08-06-test'
+
     window.onload = () => {
+      feather.replace()
       document.querySelectorAll('pre div').forEach(div => {
         Prism.highlightElement(div)
       })
     }
   </script>
   <script src="/scripts/components/picker.js"></script>
-  <script src="/scripts/components/comment.js"></script>
+  <!-- <script src="/scripts/components/comment.js"></script> -->
 </div>
 
     <footer>

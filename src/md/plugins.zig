@@ -25,19 +25,20 @@ pub const TableOfContents = struct {
         self.slugs.deinit();
     }
 
-    pub fn operate(self: *Self, ast: *Element) !void {
-        _ = self;
+    pub fn operate(self: *Self, ast: Element) !void {
+        var updated = Element.init(self.allocator, "div");
+        defer updated.deinit();
         for (ast.children.items) |child| {
             if (std.mem.startsWith(u8, child.name, "h")) {
-                // var hash = ArrayList(u8).init(self.allocator);
-                // defer hash.deinit();
-                // try @constCast(&child).toText(&hash);
-                // try self.id(&hash);
+                var hash = ArrayList(u8).init(self.allocator);
+                defer hash.deinit();
+                try @constCast(&child).toText(&hash);
+                try self.id(&hash);
 
-                // try self.slugs.append(hash.items);
-                // const ref = self.slugs.items[self.slugs.items.len - 1];
-
-                try @constCast(&child).addProp("id", "test");
+                try self.slugs.append(try self.allocator.dupe(u8, hash.items));
+                const ref = self.slugs.items[self.slugs.items.len - 1];
+                _ = ref;
+            } else {
             }
         }
     }
