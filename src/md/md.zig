@@ -74,7 +74,7 @@ pub const Lexer = struct {
         });
     }
 
-    fn scanToken(self: *Lexer) !void {
+    pub fn scanToken(self: *Lexer) !void {
         self.start = self.current;
         const chr = self.advance();
         switch (chr) {
@@ -197,7 +197,7 @@ pub const Lexer = struct {
     }
 };
 
-const ParserError = error{ UnexpectedToken } || error{ OutOfMemory };
+const ParserError = error{ UnexpectedToken, ExpectedFrontmatter } || error{ OutOfMemory };
 
 const Self = @This();
 
@@ -212,6 +212,41 @@ start: usize,
 current: usize,
 
 temp_strings: ArrayList([]u8),
+
+pub fn toFrontmatter(allocator: Allocator, raw: []const u8) ParserError!Self {
+    // Strip raw down to just frontmatter
+    var lexer = Lexer.init(allocator, raw);
+    defer lexer.deinit();
+
+    if (lexer.isAtEnd()) return ParserError.ExpectedFrontmatter;
+    try lexer.scanToken();
+    if (lexer.tokens.items[lexer.tokens.items.len - 1].kind != .frontmatter or lexer.isAtEnd())
+        return ParserError.ExpectedFrontmatter;
+
+    try lexer.scanToken();
+    while (lexer.tokens.items[lexer.tokens.items.len - 1].kind != .frontmatter) {
+        if (lexer.isAtEnd()) return ParserError.ExpectedFrontmatter;
+        try lexer.scanToken();
+    }
+
+    var self: Self = .{
+        .allocator = allocator,
+        .raw = raw[0..lexer.current],
+        .frontmatter = StringHashMap.init(allocator),
+        .tokens = &lexer.tokens,
+        .ast = Element.init(allocator, "div"), // For convenience's sake
+
+        .start = 0,
+        .current = 0,
+
+        .temp_strings = ArrayList([]u8).init(allocator)
+    };
+    self.parseFrontmatter() catch {
+        defer self.deinit();
+        return ParserError.ExpectedFrontmatter;
+    };
+    return self;
+}
 
 pub fn toHtml(allocator: Allocator, raw: []const u8, pipeline: anytype) !Self {
     var self: Self = .{
@@ -232,7 +267,6 @@ pub fn toHtml(allocator: Allocator, raw: []const u8, pipeline: anytype) !Self {
     self.tokens = &lexer.tokens;
 
     self.parseFrontmatter() catch |err| {
-        std.debug.print("{any}\n", .{err});
         if (err == ParserError.UnexpectedToken) {
             // Frontmatter doesn't exist, parse it later.
             self.start = 0;
@@ -297,7 +331,6 @@ fn parseFrontmatter(self: *Self) ParserError!void {
             _ = try self.eat(.nl);
         }
         _ = try self.eat(.frontmatter);
-        _ = try self.eat(.nl);
     }
 }
 
@@ -472,7 +505,7 @@ fn same(self: *Self, kind: TokenType) ParserError!Token {
 }
 
 fn advance(self: *Self) Token {
-    assert(self.current + 1 < self.tokens.items.len);
+    assert(self.current + 1 <= self.tokens.items.len);
     const token = self.tokens.items[self.current];
     self.current += 1;
     return token;

@@ -15,32 +15,50 @@
 
     <link href="/styles/globals.css" rel="stylesheet" />
     <link href="/styles/prism.css" rel="stylesheet" />
+
+    <script
+      data-goatcounter="https://braindumping.goatcounter.com/count"
+      async
+      src="https//gc.zgo.at/count.js"></script>
   </head>
   <body>
-    <header></header>
+    <header>
+  <h1 id="logo">braindump.ing</h1>
+</header>
 <div id="post-wrapper">
   <article>
-    <h1>Getting started</h1>
-    <div><p>In this series of articles, I want to show the way OpenGL works by writing its clone . Surprisingly enough, I often meet people who cannot overcome the initial hurdle of learning OpenGL / DirectX. Thus, I have prepared a short series of lectures, after which my students show quite good renderers.</p><p>So, the task is formulated as follows: using no third-party libraries , get something like this picture:</p><img alt="" src="https://raw.githubusercontent.com/ssloy/tinyrenderer/gh-pages/img/00-home/africanhead.png"/><p>Warning: this is a training material that will loosely repeat the structure of the OpenGL library. It will be a software renderer. I do not want to show how to write applications for OpenGL. I want to show how OpenGL works. I am deeply convinced that it is impossible to write efficient applications using 3D libraries without understanding this.</p><p>I will try to make the final code about 500 lines. My students need 10 to 20 programming hours to begin making such renderers. At the input, we get a test file with a polygonal wire + pictures with textures. At the output, we’ll get a rendered model. No graphical interface, the program simply generates an image.</p><p>Since the goal is to minimize external dependencies, I give my students just one class that allows working with  files. It’s one of the simplest formats that supports images in RGB/RGBA/black and white formats. So, as a starting point, we’ll obtain a simple way to work with pictures. You should note that the only functionality available at the very beginning  is the capability to set the color of one pixel.</p></div>
-    <div class="demo">
+    <div class="demo"><nav><p>
+  <a href="/post/2024-09-26-test.html">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-corner-down-left"><polyline points="9 10 4 15 9 20"></polyline><path d="M20 4v7a4 4 0 0 1-4 4H4"></path></svg>
+    <span>test</span>
+  </a>
+</p></nav></div>
+    <h1>test</h1>
+    <div><p>this is another another test.</p></div>
+    <!-- <div class="demo">
       <div class="comments">
         <h2>Comments</h2>
-        <p>View the discussion on <a href='https://news.ycombinator.com/item?id=https://jianminchen.com'>Hacker News</a>.</p>
+        {{ hackernews }}
+        <div id="comments"></div>
       </div>
-    </div>
+    </div> -->
   </article>
   <aside>
-    <!-- {{ toc }} -->
+    <div/>
   </aside>
+  <script src="https://unpkg.com/feather-icons"></script>
   <script>
+    window.slug = '2024-10-01-test'
+
     window.onload = () => {
+      feather.replace()
       document.querySelectorAll('pre div').forEach(div => {
         Prism.highlightElement(div)
       })
     }
   </script>
   <script src="/scripts/components/picker.js"></script>
-  <script src="/scripts/components/comment.js"></script>
+  <!-- <script src="/scripts/components/comment.js"></script> -->
 </div>
 
     <footer>

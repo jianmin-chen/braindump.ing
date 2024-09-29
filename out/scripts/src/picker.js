@@ -23,9 +23,9 @@ const Picker = () => {
   const [dragging, setDragging] = Component.useState(false)
 
   const movePicker = event => {
-    const newLeft = event.clientX - pickerSize / 2
+    const newLeft = event.clientX - pickerSize
     setLeft(() => newLeft)
-    setTop(() => event.clientY - pickerSize / 2)
+    setTop(() => event.clientY - pickerSize)
 
     if (dragging === true) {
       const p = lerp(0, colors.length - 1, newLeft / window.innerWidth)
@@ -41,7 +41,6 @@ const Picker = () => {
       onMouseMove={movePicker}
       onMouseDown={() => setDragging(() => true)}
       onMouseUp={() => setDragging(() => false)}>
-      <h1 id="logo">braindump.ing</h1>
       <div className="picker" style={`top: ${top}px; left: ${left}px`} />
     </div>
   )

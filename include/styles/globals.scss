@@ -1,3 +1,8 @@
+$sm: 576px;
+$md: 768px;
+$lg: 992px;
+$xl: 1200px;
+
 @font-face {
   font-family: 'Crimson Text';
   src: url('/fonts/CrimsonText-BoldItalic.ttf') format('truetype');
@@ -118,35 +123,50 @@ textarea {
   resize: none;
 }
 
-#color-picker-wrapper {
-  cursor: col-resize;
+header {
+  position: relative;
+  padding-top: 5rem;
 
   #logo {
     color: var(--foreground);
     font-family: var(--heading);
     font-size: 5rem;
     letter-spacing: -5px;
-    margin-bottom: 0;
+    margin: 0;
     pointer-events: none;
     user-select: none;
+
+    @media screen and (max-width: $sm) {
+      font-size: 4rem;
+    }
   }
 
-  .picker {
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1);
-    width: 30px;
-    height: 30px;
+  #color-picker-wrapper {
+    cursor: col-resize;
     position: absolute;
-    background-color: var(--theme);
-    border: 3px solid var(--foreground);
-    border-radius: 50%;
-    opacity: 0;
-    transition: opacity 0.1s ease-in-out;
-    z-index: 999;
-  }
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
 
-  &:hover {
     .picker {
-      opacity: 1;
+      box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1);
+      width: 30px;
+      height: 30px;
+      position: absolute;
+      background-color: var(--theme);
+      border: 3px solid var(--foreground);
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.1s ease-in-out;
+      z-index: 999;
+    }
+
+    &:hover {
+      .picker {
+        opacity: 1;
+      }
     }
   }
 }
@@ -304,9 +324,12 @@ textarea {
     }
 
     nav {
+      border-left: 1px solid var(--darker-border);
+      border-right: 1px solid var(--darker-border);
       display: flex;
       justify-content: space-between;
-      max-width: calc(var(--post-width) - 2rem);
+      width: var(--post-width);
+      max-width: var(--post-width);
       padding-inline: 2rem;
 
       a {
@@ -392,6 +415,7 @@ textarea {
     // position: sticky;
     // top: 0;
     align-self: flex-start;
+    padding-top: calc(4rem + 1.5rem + 3em + 2rem);
 
     p {
       margin-bottom: 0;

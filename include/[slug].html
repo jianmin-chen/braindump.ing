@@ -1,22 +1,9 @@
-<header></header>
+<header>
+  <h1 id="logo">braindump.ing</h1>
+</header>
 <div id="post-wrapper">
   <article>
-    <div class="demo">
-      <nav>
-        <p>
-          <a href="/">
-            <i data-feather="corner-down-left"></i>
-            <span>HTTP and Forms</span>
-          </a>
-        </p>
-        <p>
-          <a href="/">
-            <span>Node.js</span>
-            <i data-feather="corner-down-right"></i>
-          </a>
-        </p>
-      </nav>
-    </div>
+    <div class="demo">{{ nav }}</div>
     <h1>{{ title }}</h1>
     {{ post }}
     <!-- <div class="demo">
@@ -28,7 +15,7 @@
     </div> -->
   </article>
   <aside>
-    <!-- {{ toc }} -->
+    {{ toc }}
   </aside>
   <script src="https://unpkg.com/feather-icons"></script>
   <script>

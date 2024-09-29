@@ -7,6 +7,7 @@ const ArrayList = std.ArrayList;
 pub const TableOfContents = struct {
     allocator: Allocator,
     slugs: ArrayList([]const u8),
+    values: ArrayList([]const u8),
     mutate: bool = true,
 
     const Self = @This();
@@ -14,7 +15,8 @@ pub const TableOfContents = struct {
     pub fn init(allocator: Allocator) Self {
         return .{
             .allocator = allocator,
-            .slugs = ArrayList([]const u8).init(allocator)
+            .slugs = ArrayList([]const u8).init(allocator),
+            .values = ArrayList([]const u8).init(allocator)
         };
     }
 
@@ -23,27 +25,56 @@ pub const TableOfContents = struct {
             self.allocator.free(slug);
         }
         self.slugs.deinit();
+        for (self.values.items) |value| {
+            self.allocator.free(value);
+        }
+        self.values.deinit();
+    }
+
+    pub fn toHtml(self: *Self) ![]u8 {
+        var toc = Element.init(self.allocator, "div");
+        defer toc.deinit();
+
+        for (self.slugs.items, 0..) |slug, idx| {
+            const value = self.values.items[idx];
+            var p = Element.init(self.allocator, "p");
+            var backlink = Element.init(self.allocator, "a");
+            try backlink.addProp("href", slug);
+            try backlink.addChild(
+                try Element.textNode(
+                    self.allocator,
+                    std.mem.trim(u8, value, " ")
+                )
+            );
+            try p.addChild(backlink);
+            try toc.addChild(p);
+        }
+
+        var html = ArrayList(u8).init(self.allocator);
+        defer html.deinit();
+        try toc.toHtml(&html);
+        return html.toOwnedSlice();
     }
 
     pub fn operate(self: *Self, ast: Element) !void {
-        var updated = Element.init(self.allocator, "div");
-        defer updated.deinit();
         for (ast.children.items) |child| {
             if (std.mem.startsWith(u8, child.name, "h")) {
-                var hash = ArrayList(u8).init(self.allocator);
-                defer hash.deinit();
-                try @constCast(&child).toText(&hash);
-                try self.id(&hash);
+                var node_value = ArrayList(u8).init(self.allocator);
+                defer node_value.deinit();
+                try @constCast(&child).toText(&node_value);
 
-                try self.slugs.append(try self.allocator.dupe(u8, hash.items));
-                const ref = self.slugs.items[self.slugs.items.len - 1];
-                _ = ref;
-            } else {
+                try self.id(&node_value);
+
+                const slug = self.slugs.items[self.slugs.items.len - 1];
+                _ = slug;
             }
         }
     }
 
-    fn id(self: *Self, hash: *ArrayList(u8)) !void {
+    fn id(self: *Self, node_value: *ArrayList(u8)) !void {
+        var hash = try node_value.clone();
+        defer hash.deinit();
+
         hash.items[0] = '#';
         var i: usize = 1;
         while (i < hash.items.len) {
@@ -58,16 +89,13 @@ pub const TableOfContents = struct {
             i += 1;
         }
 
-        const slice: []const u8 = hash.items;
-        var idx: usize = 0;
-        for (self.slugs.items) |slug| {
-            if (std.mem.startsWith(u8, slug, slice))
-                idx += 1;
-        }
-
+        const idx: usize = 0;
         if (idx > 0) {
             const writer = hash.writer();
             try writer.print("{d}", .{idx});
         }
+
+        try self.slugs.append(try hash.toOwnedSlice());
+        try self.values.append(try node_value.toOwnedSlice());
     }
 };

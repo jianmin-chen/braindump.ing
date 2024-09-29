@@ -22,7 +22,45 @@
       src="https//gc.zgo.at/count.js"></script>
   </head>
   <body>
-    {{ template }}
+    <header>
+  <h1 id="logo">braindump.ing</h1>
+</header>
+<div id="post-wrapper">
+  <article>
+    <div class="demo"><nav><p>
+  <a href="/post/2024-09-26-test.html">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-corner-down-left"><polyline points="9 10 4 15 9 20"></polyline><path d="M20 4v7a4 4 0 0 1-4 4H4"></path></svg>
+    <span>test</span>
+  </a>
+</p></nav></div>
+    <h1>test</h1>
+    <div><p>this is another another test.</p></div>
+    <!-- <div class="demo">
+      <div class="comments">
+        <h2>Comments</h2>
+        {{ hackernews }}
+        <div id="comments"></div>
+      </div>
+    </div> -->
+  </article>
+  <aside>
+    <div/>
+  </aside>
+  <script src="https://unpkg.com/feather-icons"></script>
+  <script>
+    window.slug = '2024-10-01-test'
+
+    window.onload = () => {
+      feather.replace()
+      document.querySelectorAll('pre div').forEach(div => {
+        Prism.highlightElement(div)
+      })
+    }
+  </script>
+  <script src="/scripts/components/picker.js"></script>
+  <!-- <script src="/scripts/components/comment.js"></script> -->
+</div>
+
     <footer>
       <div class="subscribe">
         <div id="subscribe"></div>

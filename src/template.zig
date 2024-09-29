@@ -7,7 +7,7 @@ const panic = std.debug.panic;
 
 pub const input_dir = "content";
 pub const static_dir = "include";
-pub const output_dir = "docs";
+pub const output_dir = "out";
 pub const post_dir = "post";
 
 const Self = @This();
@@ -15,19 +15,19 @@ const Self = @This();
 allocator: Allocator,
 expressions: StringHashMap,
 template_path: []const u8,
-output_path: []const u8,
+template: []u8 = undefined,
 
-pub fn create(allocator: Allocator, template_path: []const u8, output_path: []const u8) Self {
+pub fn create(allocator: Allocator, template_path: []const u8) Self {
     return .{
         .allocator = allocator,
         .expressions = StringHashMap.init(allocator),
-        .template_path = template_path,
-        .output_path = output_path
+        .template_path = template_path
     };
 }
 
 pub fn deinit(self: *Self) void {
     self.expressions.deinit();
+    self.allocator.free(self.template);
 }
 
 pub fn add_expression(self: *Self, k: []const u8, v: []const u8) !void {
@@ -43,7 +43,6 @@ pub fn output(self: *Self) !void {
     defer self.allocator.free(template);
 
     var replace: []u8 = try std.fmt.allocPrint(self.allocator, "{s}", .{template});
-    defer self.allocator.free(replace);
 
     var keys = self.expressions.keyIterator();
     while (keys.next()) |k| {
@@ -66,11 +65,11 @@ pub fn output(self: *Self) !void {
         replace = new;
     }
 
-    // Wrap for valid HTML
-    const wrapper_path = try std.fs.path.join(self.allocator, &[_][]const u8{
-        static_dir,
-        "wrapper.html"
-    });
+    self.template = replace;
+}
+
+pub fn save(self: *Self, path: []const u8) !void {
+    const wrapper_path = try std.fs.path.join(self.allocator, &[_][]const u8{ static_dir, "wrapper.html" });
     defer self.allocator.free(wrapper_path);
 
     const wrapper_file = try std.fs.cwd().openFile(wrapper_path, .{});
@@ -83,10 +82,10 @@ pub fn output(self: *Self) !void {
     const expr = "{{ template }}";
     const index = std.mem.indexOf(u8, wrapper, expr) orelse unreachable;
 
-    const formatted = try std.fs.cwd().createFile(self.output_path, .{});
+    const formatted = try std.fs.cwd().createFile(path, .{});
     defer formatted.close();
 
     _ = try formatted.write(wrapper[0..index]);
-    _ = try formatted.write(replace);
+    _ = try formatted.write(self.template);
     _ = try formatted.write(wrapper[index + expr.len..]);
 }
