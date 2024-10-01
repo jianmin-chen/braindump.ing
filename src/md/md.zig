@@ -205,7 +205,7 @@ allocator: Allocator,
 raw: []const u8,
 frontmatter: StringHashMap,
 tokens: *ArrayList(Token) = undefined,
-ast: Element,
+ast: *Element,
 output: []const u8 = "",
 
 start: usize,
@@ -234,7 +234,7 @@ pub fn toFrontmatter(allocator: Allocator, raw: []const u8) ParserError!Self {
         .raw = raw[0..lexer.current],
         .frontmatter = StringHashMap.init(allocator),
         .tokens = &lexer.tokens,
-        .ast = Element.init(allocator, "div"), // For convenience's sake
+        .ast = try Element.init(allocator, "div"), // For convenience's sake
 
         .start = 0,
         .current = 0,
@@ -253,7 +253,7 @@ pub fn toHtml(allocator: Allocator, raw: []const u8, pipeline: anytype) !Self {
         .allocator = allocator,
         .raw = raw,
         .frontmatter = StringHashMap.init(allocator),
-        .ast = Element.init(allocator, "div"),
+        .ast = try Element.init(allocator, "div"),
 
         .start = 0,
         .current = 0,
@@ -339,7 +339,7 @@ fn parse(self: *Self) !void {
     while (!self.isAtEnd()) {
         self.skipNewlines();
         if (!self.isAtEnd())
-            try self.parseBlock(&self.ast);
+            try self.parseBlock(self.ast);
     }
 }
 
@@ -347,27 +347,27 @@ fn parseBlock(self: *Self, parent: *Element) !void {
     const token = self.advance();
     switch (token.kind) {
         .blockquote => {
-            var blockquote = Element.init(self.allocator, "blockquote");
-            var p = Element.init(self.allocator, "p");
+            const blockquote = try Element.init(self.allocator, "blockquote");
+            const p = try Element.init(self.allocator, "p");
             while (!self.match(.nl))
-                try self.parseInline(&p);
+                try self.parseInline(p);
             try blockquote.addChild(p);
             try parent.addChild(blockquote);
         },
         .heading => {
             try self.temp_strings.append(try std.fmt.allocPrint(self.allocator, "h{d}", .{token.length}));
-            var heading = Element.init(
+            const heading = try Element.init(
                 self.allocator,
                 self.temp_strings.items[self.temp_strings.items.len - 1]
             );
             while (!self.match(.nl))
-                try self.parseInline(&heading);
+                try self.parseInline(heading);
             try parent.addChild(heading);
         },
         .exclaim => {
             const alt = try self.eat(.bracket);
             const src = try self.eat(.paren);
-            var img = Element.init(self.allocator, "img");
+            const img = try Element.init(self.allocator, "img");
             try img.addProp(
                 "alt",
                 trim(self.raw[alt.start + 1..alt.start + alt.length - 1])
@@ -382,7 +382,7 @@ fn parseBlock(self: *Self, parent: *Element) !void {
             const block = self.raw[token.start..token.start + token.length];
             const end = std.mem.indexOf(u8, block, "\n") orelse unreachable;
             try self.temp_strings.append(try std.fmt.allocPrint(self.allocator, "language-{s}", .{block[3..end]}));
-            var pre = Element.init(self.allocator, "pre");
+            const pre = try Element.init(self.allocator, "pre");
             try pre.addProp(
                 "class",
                 self.temp_strings.items[self.temp_strings.items.len - 1]
@@ -390,7 +390,7 @@ fn parseBlock(self: *Self, parent: *Element) !void {
 
             var lines = std.mem.splitScalar(u8, self.raw[token.start + end + 1..token.start + token.length - 4], '\n');
             while (lines.next()) |line| {
-                var div = Element.init(self.allocator, "div");
+                var div = try Element.init(self.allocator, "div");
                 try div.addProp(
                     "class",
                     self.temp_strings.items[self.temp_strings.items.len - 1]
@@ -407,7 +407,7 @@ fn parseBlock(self: *Self, parent: *Element) !void {
             try parent.addChild(pre);
         },
         else => {
-            var p = Element.init(self.allocator, "p");
+            const p = try Element.init(self.allocator, "p");
             try p.addChild(
                 try Element.textNode(
                     self.allocator,
@@ -415,7 +415,7 @@ fn parseBlock(self: *Self, parent: *Element) !void {
                 )
             );
             while (!self.match(.nl))
-                try self.parseInline(&p);
+                try self.parseInline(p);
             try parent.addChild(p);
         }
     }
@@ -434,7 +434,7 @@ fn parseInline(self: *Self, parent: *Element) !void {
             );
         },
         .code => {
-            var code = Element.init(self.allocator, "code");
+            const code = try Element.init(self.allocator, "code");
             try code.addChild(
                 try Element.textNode(
                     self.allocator,
@@ -443,12 +443,27 @@ fn parseInline(self: *Self, parent: *Element) !void {
             );
             try push.addChild(code);
         },
+        .bracket => {
+            // TODO: Recursive
+            const a = try Element.init(self.allocator, "a");
+            const source = try self.eat(.paren);
+            const href = self.raw[source.start + 1..source.start + source.length - 1];
+            if (!std.mem.startsWith(u8, href, "#") and !std.mem.startsWith(u8, href, "/"))
+                try a.addProp("target", "_blank");
+            try a.addProp("href", href);
+            try a.addChild(
+                try Element.textNode(
+                    self.allocator,
+                    self.raw[token.start + 1..token.start + token.length - 1]
+                )
+            );
+            try push.addChild(a);
+        },
         .star => {
             if (self.match(.star)) {
                 _ = self.advance();
 
-                const b = Element.init(self.allocator, "b");
-                std.debug.print("{s}\n", .{@tagName(self.peek().kind)});
+                const b = try Element.init(self.allocator, "b");
 
                 // while (!self.match(.star) and !self.matchAhead(1, .star)) {
                 //     if (self.matchAhead(1, .eof))
@@ -464,11 +479,11 @@ fn parseInline(self: *Self, parent: *Element) !void {
                 return;
             }
 
-            var i = Element.init(self.allocator, "i");
+            const i = try Element.init(self.allocator, "i");
             while (!self.match(.star)) {
                 if (self.isAtEnd())
                     return ParserError.UnexpectedToken;
-                try self.parseInline(&i);
+                try self.parseInline(i);
             }
             _ = try self.eat(.star);
             try push.addChild(i);

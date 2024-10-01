@@ -32,13 +32,13 @@ pub const TableOfContents = struct {
     }
 
     pub fn toHtml(self: *Self) ![]u8 {
-        var toc = Element.init(self.allocator, "div");
+        const toc = try Element.init(self.allocator, "div");
         defer toc.deinit();
 
         for (self.slugs.items, 0..) |slug, idx| {
             const value = self.values.items[idx];
-            var p = Element.init(self.allocator, "p");
-            var backlink = Element.init(self.allocator, "a");
+            const p = try Element.init(self.allocator, "p");
+            const backlink = try Element.init(self.allocator, "a");
             try backlink.addProp("href", slug);
             try backlink.addChild(
                 try Element.textNode(
@@ -56,17 +56,28 @@ pub const TableOfContents = struct {
         return html.toOwnedSlice();
     }
 
-    pub fn operate(self: *Self, ast: Element) !void {
+    pub fn operate(self: *Self, ast: *Element) !void {
         for (ast.children.items) |child| {
             if (std.mem.startsWith(u8, child.name, "h")) {
                 var node_value = ArrayList(u8).init(self.allocator);
                 defer node_value.deinit();
-                try @constCast(&child).toText(&node_value);
+                try child.toText(&node_value);
 
                 try self.id(&node_value);
 
                 const slug = self.slugs.items[self.slugs.items.len - 1];
-                _ = slug;
+                try child.addProp("id", std.mem.trim(u8, slug, "#"));
+
+                const backlink = try Element.init(self.allocator, "a");
+                try backlink.addProp("class", "link");
+                try backlink.addProp("href", slug);
+                try backlink.addChild(
+                    try Element.htmlNode(
+                        self.allocator,
+                        \\<svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                    )
+                );
+                try child.addChild(backlink);
             }
         }
     }

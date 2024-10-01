@@ -59,9 +59,18 @@ $xl: 1200px;
   --foreground: white;
 
   --border-width: 14px;
-  --post-width: 50vw;
-  --toc-width: 20vw;
-  --empty-col-width: calc((100vw - var(--post-width) - var(--toc-width)) / 2);
+  --md-post-width: 60vw;
+  --lg-post-width: 50vw;
+  --md-toc-width: 30vw;
+  --lg-toc-width: 20vw;
+
+  @media screen and (min-width: $md) {
+    --empty-col-width: calc((100vw - var(--md-post-width) - var(--md-toc-width)) / 2);
+  }
+
+  @media screen and (min-width: $lg) {
+    --empty-col-width: calc((100vw - var(--lg-post-width) - var(--lg-toc-width)) / 2);
+  }
 }
 
 * {
@@ -150,6 +159,10 @@ header {
     height: 100%;
     z-index: 9999;
 
+    @media screen and (max-width: $lg) {
+      display: none;
+    }
+
     .picker {
       box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1);
       width: 30px;
@@ -207,16 +220,22 @@ header {
   box-shadow:
     0 4px 8px 0 rgba(0, 0, 0, 0.1),
     0 -4px 8px 0 rgba(0, 0, 0, 0.1);
-  display: flex;
-  justify-content: center;
   position: relative;
+
+  @media screen and (min-width: $md) {
+    display: flex;
+    justify-content: center;
+  }
 
   article,
   aside {
     background-color: var(--foreground);
     font-size: 1.2rem;
     padding: 2rem;
-    padding-top: 4rem;
+
+    @media screen and (min-width: $md) {
+      padding-top: 4rem;
+    }
   }
 
   article {
@@ -224,8 +243,16 @@ header {
     border-right: 1px solid var(--border);
     line-height: var(--line-height);
     font-family: var(--serif);
-    width: var(--post-width);
-    max-width: var(--post-width);
+
+    @media screen and (min-width: $md) {
+      width: var(--md-post-width);
+      max-width: var(--md-post-width);
+    }
+
+    @media screen and (min-width: $lg) {
+      width: var(--lg-post-width);
+      max-width: var(--lg-post-width);
+    }
 
     > div > blockquote {
       /* font-style: italic; */
@@ -255,6 +282,10 @@ header {
     h2 {
       font-family: var(--heading);
       font-weight: 900;
+
+      @media screen and (max-width: $xl) {
+        line-height: 1.4;
+      }
     }
 
     h1 {
@@ -304,16 +335,24 @@ header {
     pre {
       border-top: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
-      width: calc(100vw - var(--border-width) * 2);
+      background-color: var(--background);
       margin-top: 1.5em;
       margin-bottom: 1.5em;
-      margin-left: calc(
-        (-1 * var(--empty-col-width)) - 2rem + (var(--border-width) - 1px)
-      );
-      padding-left: calc(var(--empty-col-width) - var(--border-width));
-      background-color: var(--background);
       position: relative;
       z-index: 999;
+
+      @media screen and (max-width: $md) {
+        margin-left: -2rem;
+        width: calc(100vw - var(--border-width) * 2 - 1px);
+      }
+
+      @media screen and (min-width: $md) {
+        width: calc(100vw - var(--border-width) * 2);
+        margin-left: calc(
+          (-1 * var(--empty-col-width)) - 2rem + (var(--border-width) - 1px)
+        );
+        padding-left: calc(var(--empty-col-width) - var(--border-width));
+      }
     }
 
     .demo {
@@ -326,11 +365,19 @@ header {
     nav {
       border-left: 1px solid var(--darker-border);
       border-right: 1px solid var(--darker-border);
+      padding-inline: 2rem;
       display: flex;
       justify-content: space-between;
-      width: var(--post-width);
-      max-width: var(--post-width);
-      padding-inline: 2rem;
+
+      @media screen and (min-width: $md) {
+        width: var(--md-post-width);
+        max-width: var(--md-post-width);
+      }
+
+      @media screen and (min-width: $lg) {
+        width: var(--lg-post-width);
+        max-width: var(--lg-post-width);
+      }
 
       a {
         display: flex;
@@ -405,17 +452,30 @@ header {
         }
       }
     }
+
+    #date {
+      margin-top: calc(2rem + 0.5em);
+      margin-bottom: 0;
+      font-family: var(--sans-serif);
+      font-style: italic;
+      text-indent: 0;
+    }
   }
 
   aside {
     background-color: white;
     font-family: var(--sans-serif);
-    width: var(--toc-width);
-    max-width: var(--toc-width);
+    width: var(--md-toc-width);
+    max-width: var(--md-toc-width);
     // position: sticky;
     // top: 0;
     align-self: flex-start;
     padding-top: calc(4rem + 1.5rem + 3em + 2rem);
+
+    @media screen and (min-width: $lg) {
+      width: var(--lg-toc-width);
+      max-width: var(--lg-toc-width);
+    }
 
     p {
       margin-bottom: 0;
@@ -425,6 +485,10 @@ header {
       a {
         text-decoration: none;
       }
+    }
+
+    @media screen and (max-width: $md) {
+      display: none;
     }
   }
 
@@ -438,9 +502,20 @@ footer {
   color: var(--foreground);
   font-family: var(--sans-serif);
   font-size: 1.1rem;
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
+
+  @media screen and (min-width: $md) {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+  }
+
+  @media screen and (min-width: $lg) and (max-width: $xl) {
+    padding-inline: 1.5rem;
+  }
+
+  @media screen and (max-width: $lg) {
+    padding-inline: 2rem;
+  }
 
   a {
     color: var(--foreground);
@@ -460,9 +535,21 @@ footer {
   }
 
   > div {
-    width: 30vw;
-    max-width: 30vw;
     padding-top: 1rem;
+
+    @media screen and (min-width: $md) {
+      width: 50vw;
+      max-width: 50vw;
+    }
+
+    @media screen and (min-width: $xl) {
+      width: 30vw;
+      max-width: 30vw;
+    }
+
+    @media screen and (max-width: $md) {
+      text-align: right;
+    }
 
     code {
       font-family: var(--monospace);

@@ -1,4 +1,5 @@
 const std = @import("std");
+const datetime = @import("datetime.zig");
 const Element = @import("md/element.zig");
 const md = @import("md/md.zig");
 const plugins = @import("md/plugins.zig");
@@ -44,6 +45,28 @@ pub fn main() !void {
             var sorted = ArrayList([]const u8).init(allocator);
             defer sorted.deinit();
 
+            // TODO: Eventually replace with XML style writer
+            const feed_path = try fs.path.join(allocator, &[_][]const u8{ Template.output_dir, "atom.xml" });
+            defer allocator.free(feed_path);
+            var feed = try fs.cwd().createFile(feed_path, .{});
+            defer feed.close();
+            const writer = feed.writer();
+
+            const date = try @constCast(&try datetime.fromTimestamp(allocator, std.time.timestamp())).toString();
+            defer allocator.free(date);
+            try writer.print(
+                \\<feed xmlns="https://www.w3.org/2005/Atom">
+                \\  <title>braindump.ing</title>
+                \\  <link href="https://braindump.ing/atom.xml" ref="self"/>
+                \\  <link href="https://braindump.ing"/>
+                \\  <updated>{s}</updated>
+                \\  <id>braindump.ing</id>
+                \\  <author>
+                \\    <name>JC</name>
+                \\  </author>
+                , .{date}
+            );
+
             var it = input_dir.iterate();
             while (try it.next()) |entry| {
                 if (sorted.items.len != 0) {
@@ -60,14 +83,16 @@ pub fn main() !void {
             for (sorted.items, 0..) |entry, idx| {
                 const prev: ?[]const u8 = if (idx != 0) sorted.items[idx - 1] else null;
                 const next: ?[]const u8 = if (idx != sorted.items.len - 1) sorted.items[idx + 1] else null;
-                try output(allocator, entry, prev, next);
+                try output(allocator, entry, prev, next, &feed);
             }
+
+            _ = try writer.write("</feed>");
         },
         .serve => try server.start(allocator)
     }
 }
 
-fn output(allocator: Allocator, entry: []const u8, prev: ?[]const u8, next: ?[]const u8) !void {
+fn output(allocator: Allocator, entry: []const u8, prev: ?[]const u8, next: ?[]const u8, feed: *fs.File) !void {
     const input_path = try fs.path.join(allocator, &[_][]const u8{ Template.input_dir, entry });
     defer allocator.free(input_path);
 
@@ -88,11 +113,28 @@ fn output(allocator: Allocator, entry: []const u8, prev: ?[]const u8, next: ?[]c
         panic("Expected title in {s}.\n", .{entry});
     if (converted.frontmatter.get("date") == null)
         panic("Expected date in {s}.\n", .{entry});
+    if (converted.frontmatter.get("description") == null)
+        panic("Expected description in {s}.\n", .{entry});
+
+    const title = converted.frontmatter.get("title") orelse unreachable;
+    const date = converted.frontmatter.get("date") orelse unreachable;
+    const slug = std.mem.trim(u8, entry, ".md");
+
+    const feed_writer = feed.writer();
+    try feed_writer.print(
+        \\<entry>
+        \\  <title type="html">{s}</title>
+        \\  <link href="https://braindump.ing/{s}.html"/>
+        \\  <id>https://braindump.ing/{s}.html</id>
+        \\  <updated>{s}T00:00:00Z</updated>
+        \\</entry>
+        , .{title, slug, slug, date}
+    );
 
     const template_path = try fs.path.join(allocator, &[_][]const u8{ Template.static_dir, "[slug].html" });
     defer allocator.free(template_path);
 
-    const html = try std.fmt.allocPrint(allocator, "{s}.html", .{std.mem.trim(u8, entry, ".md")});
+    const html = try std.fmt.allocPrint(allocator, "{s}.html", .{slug});
     defer allocator.free(html);
     const output_path = try fs.path.join(allocator, &[_][]const u8{ Template.output_dir, Template.post_dir, html });
     defer allocator.free(output_path);
@@ -100,8 +142,8 @@ fn output(allocator: Allocator, entry: []const u8, prev: ?[]const u8, next: ?[]c
     var template = Template.create(allocator, template_path);
     defer template.deinit();
 
-    try template.add_expression("slug", std.mem.trim(u8, entry, ".md"));
-    try template.add_expression("title", converted.frontmatter.get("title") orelse unreachable);
+    try template.add_expression("slug", slug);
+    try template.add_expression("title", title);
     try template.add_expression("post", converted.output);
 
     var nav = ArrayList(u8).init(allocator);
@@ -111,7 +153,7 @@ fn output(allocator: Allocator, entry: []const u8, prev: ?[]const u8, next: ?[]c
         _ = try writer.write("<nav>");
 
         if (prev) |filename| {
-            const url = try std.fmt.allocPrint(allocator, "/post/{s}.html", .{std.mem.trim(u8, filename, ".md")});
+            const url = try std.fmt.allocPrint(allocator, "/post/{s}.html", .{slug});
             defer allocator.free(url);
 
             const path = try fs.path.join(allocator, &[_][]const u8{ Template.input_dir, filename });
@@ -141,7 +183,7 @@ fn output(allocator: Allocator, entry: []const u8, prev: ?[]const u8, next: ?[]c
         }
 
         if (next) |filename| {
-            const url = try std.fmt.allocPrint(allocator, "{s}.html", .{std.mem.trim(u8, filename, ".md")});
+            const url = try std.fmt.allocPrint(allocator, "{s}.html", .{slug});
             defer allocator.free(url);
 
             const path = try fs.path.join(allocator, &[_][]const u8{ Template.input_dir, filename });
@@ -190,6 +232,21 @@ fn output(allocator: Allocator, entry: []const u8, prev: ?[]const u8, next: ?[]c
     const toc_expr = try toc.toHtml();
     defer allocator.free(toc_expr);
     try template.add_expression("toc", toc_expr);
+
+    // Compile SEO
+    const meta_path = try fs.path.join(allocator, &[_][]const u8{ Template.static_dir, "seo.html" });
+    defer allocator.free(meta_path);
+
+    var meta = Template.create(allocator, meta_path);
+    defer meta.deinit();
+
+    try meta.add_expression("title", title);
+    try meta.add_expression("description", converted.frontmatter.get("description") orelse unreachable);
+    try meta.add_expression("slug", slug);
+    try meta.add_expression("timestamp", date);
+
+    try meta.output();
+    try template.add_expression("meta", meta.template);
 
     try template.output();
     try template.save(output_path);

@@ -50,19 +50,16 @@ pub fn output(self: *Self) !void {
         const needle = try std.fmt.allocPrint(self.allocator, "{{{{ {s} }}}}", .{k.*});
         defer self.allocator.free(needle);
 
-        const index = std.mem.indexOf(u8, replace, needle);
-        if (index == null)
-            panic("Expected {s} in {s}.\n", .{needle, self.template_path});
+        while (std.mem.indexOf(u8, replace, needle)) |index| {
+            const v = self.expressions.get(k.*) orelse unreachable;
 
-        const v = self.expressions.get(k.*) orelse unreachable;
-
-        const start = index orelse unreachable;
-        const before = replace[0..start];
-        const after = replace[start + needle.len..];
-        const new = try self.allocator.alloc(u8, before.len + after.len + v.len);
-        _ = try std.fmt.bufPrint(new, "{s}{s}{s}", .{before, v, after});
-        self.allocator.free(replace);
-        replace = new;
+            const before = replace[0..index];
+            const after = replace[index + needle.len..];
+            const new = try self.allocator.alloc(u8, before.len + after.len + v.len);
+            _ = try std.fmt.bufPrint(new, "{s}{s}{s}", .{before, v, after});
+            self.allocator.free(replace);
+            replace = new;
+        }
     }
 
     self.template = replace;
@@ -72,20 +69,16 @@ pub fn save(self: *Self, path: []const u8) !void {
     const wrapper_path = try std.fs.path.join(self.allocator, &[_][]const u8{ static_dir, "wrapper.html" });
     defer self.allocator.free(wrapper_path);
 
-    const wrapper_file = try std.fs.cwd().openFile(wrapper_path, .{});
-    defer wrapper_file.close();
+    var wrapper = Self.create(self.allocator, wrapper_path);
+    defer wrapper.deinit();
 
-    const wrapper = try self.allocator.alloc(u8, try wrapper_file.getEndPos());
-    _ = try wrapper_file.readAll(wrapper);
-    defer self.allocator.free(wrapper);
+    try wrapper.add_expression("template", self.template);
+    try wrapper.add_expression("meta", self.expressions.get("meta") orelse "");
 
-    const expr = "{{ template }}";
-    const index = std.mem.indexOf(u8, wrapper, expr) orelse unreachable;
+    try wrapper.output();
 
     const formatted = try std.fs.cwd().createFile(path, .{});
     defer formatted.close();
 
-    _ = try formatted.write(wrapper[0..index]);
-    _ = try formatted.write(self.template);
-    _ = try formatted.write(wrapper[index + expr.len..]);
+    _ = try formatted.write(wrapper.template);
 }

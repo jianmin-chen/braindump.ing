@@ -7,3 +7,9 @@ Parsing Markdown is a three step process: tokenize with `start` and `length` des
 A custom React library based on [this](https://pomb.us/build-your-own-react/) with a few tweaks for fun is used for functionality of: the color picker and the subscribe form. At some point I want to write a fully functional clone of React from scratch to understand how it works.
 
 GitHub action: runs `sass include/styles/globals.scss docs/styles/globals.css --no-source-map`, `cd include/scripts && npm run build`, and `./zig-out/bin/blog --build` before deploying to GitHub Pages.
+
+TODO:
+
+* Comments
+* Draft pages
+* `sitemap-index.xml`

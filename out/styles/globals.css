@@ -46,9 +46,20 @@
   --theme: #690;
   --foreground: white;
   --border-width: 14px;
-  --post-width: 50vw;
-  --toc-width: 20vw;
-  --empty-col-width: calc((100vw - var(--post-width) - var(--toc-width)) / 2);
+  --md-post-width: 60vw;
+  --lg-post-width: 50vw;
+  --md-toc-width: 30vw;
+  --lg-toc-width: 20vw;
+}
+@media screen and (min-width: 768px) {
+  :root {
+    --empty-col-width: calc((100vw - var(--md-post-width) - var(--md-toc-width)) / 2);
+  }
+}
+@media screen and (min-width: 992px) {
+  :root {
+    --empty-col-width: calc((100vw - var(--lg-post-width) - var(--lg-toc-width)) / 2);
+  }
 }
 
 * {
@@ -134,6 +145,11 @@ header #color-picker-wrapper {
   height: 100%;
   z-index: 9999;
 }
+@media screen and (max-width: 992px) {
+  header #color-picker-wrapper {
+    display: none;
+  }
+}
 header #color-picker-wrapper .picker {
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1);
   width: 30px;
@@ -180,24 +196,43 @@ header #color-picker-wrapper:hover .picker {
 #post-wrapper {
   background-color: white;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 -4px 8px 0 rgba(0, 0, 0, 0.1);
-  display: flex;
-  justify-content: center;
   position: relative;
+}
+@media screen and (min-width: 768px) {
+  #post-wrapper {
+    display: flex;
+    justify-content: center;
+  }
 }
 #post-wrapper article,
 #post-wrapper aside {
   background-color: var(--foreground);
   font-size: 1.2rem;
   padding: 2rem;
-  padding-top: 4rem;
+}
+@media screen and (min-width: 768px) {
+  #post-wrapper article,
+  #post-wrapper aside {
+    padding-top: 4rem;
+  }
 }
 #post-wrapper article {
   border-left: 1px solid var(--border);
   border-right: 1px solid var(--border);
   line-height: var(--line-height);
   font-family: var(--serif);
-  width: var(--post-width);
-  max-width: var(--post-width);
+}
+@media screen and (min-width: 768px) {
+  #post-wrapper article {
+    width: var(--md-post-width);
+    max-width: var(--md-post-width);
+  }
+}
+@media screen and (min-width: 992px) {
+  #post-wrapper article {
+    width: var(--lg-post-width);
+    max-width: var(--lg-post-width);
+  }
 }
 #post-wrapper article > div > blockquote {
   /* font-style: italic; */
@@ -224,6 +259,12 @@ header #color-picker-wrapper:hover .picker {
 #post-wrapper article h2 {
   font-family: var(--heading);
   font-weight: 900;
+}
+@media screen and (max-width: 1200px) {
+  #post-wrapper article h1,
+  #post-wrapper article h2 {
+    line-height: 1.4;
+  }
 }
 #post-wrapper article h1 {
   font-size: 2.4rem;
@@ -261,14 +302,26 @@ header #color-picker-wrapper:hover .picker {
 #post-wrapper article pre {
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
-  width: calc(100vw - var(--border-width) * 2);
+  background-color: var(--background);
   margin-top: 1.5em;
   margin-bottom: 1.5em;
-  margin-left: calc(-1 * var(--empty-col-width) - 2rem + var(--border-width) - 1px);
-  padding-left: calc(var(--empty-col-width) - var(--border-width));
-  background-color: var(--background);
   position: relative;
   z-index: 999;
+}
+@media screen and (max-width: 768px) {
+  #post-wrapper article .demo,
+  #post-wrapper article pre {
+    margin-left: -2rem;
+    width: calc(100vw - var(--border-width) * 2 - 1px);
+  }
+}
+@media screen and (min-width: 768px) {
+  #post-wrapper article .demo,
+  #post-wrapper article pre {
+    width: calc(100vw - var(--border-width) * 2);
+    margin-left: calc(-1 * var(--empty-col-width) - 2rem + var(--border-width) - 1px);
+    padding-left: calc(var(--empty-col-width) - var(--border-width));
+  }
 }
 #post-wrapper article .demo p {
   font-family: var(--sans-serif);
@@ -277,11 +330,21 @@ header #color-picker-wrapper:hover .picker {
 #post-wrapper article nav {
   border-left: 1px solid var(--darker-border);
   border-right: 1px solid var(--darker-border);
+  padding-inline: 2rem;
   display: flex;
   justify-content: space-between;
-  width: var(--post-width);
-  max-width: var(--post-width);
-  padding-inline: 2rem;
+}
+@media screen and (min-width: 768px) {
+  #post-wrapper article nav {
+    width: var(--md-post-width);
+    max-width: var(--md-post-width);
+  }
+}
+@media screen and (min-width: 992px) {
+  #post-wrapper article nav {
+    width: var(--lg-post-width);
+    max-width: var(--lg-post-width);
+  }
 }
 #post-wrapper article nav a {
   display: flex;
@@ -338,13 +401,26 @@ header #color-picker-wrapper:hover .picker {
 #post-wrapper article .comments .comment code {
   font-size: 0.895rem !important;
 }
+#post-wrapper article #date {
+  margin-top: calc(2rem + 0.5em);
+  margin-bottom: 0;
+  font-family: var(--sans-serif);
+  font-style: italic;
+  text-indent: 0;
+}
 #post-wrapper aside {
   background-color: white;
   font-family: var(--sans-serif);
-  width: var(--toc-width);
-  max-width: var(--toc-width);
+  width: var(--md-toc-width);
+  max-width: var(--md-toc-width);
   align-self: flex-start;
   padding-top: calc(5.5rem + 3em + 2rem);
+}
+@media screen and (min-width: 992px) {
+  #post-wrapper aside {
+    width: var(--lg-toc-width);
+    max-width: var(--lg-toc-width);
+  }
 }
 #post-wrapper aside p {
   margin-bottom: 0;
@@ -353,6 +429,11 @@ header #color-picker-wrapper:hover .picker {
 }
 #post-wrapper aside p a {
   text-decoration: none;
+}
+@media screen and (max-width: 768px) {
+  #post-wrapper aside {
+    display: none;
+  }
 }
 #post-wrapper a {
   color: var(--theme);
@@ -363,9 +444,23 @@ footer {
   color: var(--foreground);
   font-family: var(--sans-serif);
   font-size: 1.1rem;
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
+}
+@media screen and (min-width: 768px) {
+  footer {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+  }
+}
+@media screen and (min-width: 992px) and (max-width: 1200px) {
+  footer {
+    padding-inline: 1.5rem;
+  }
+}
+@media screen and (max-width: 992px) {
+  footer {
+    padding-inline: 2rem;
+  }
 }
 footer a {
   color: var(--foreground);
@@ -382,9 +477,24 @@ footer .subscribe form {
   border-radius: 14px;
 }
 footer > div {
-  width: 30vw;
-  max-width: 30vw;
   padding-top: 1rem;
+}
+@media screen and (min-width: 768px) {
+  footer > div {
+    width: 50vw;
+    max-width: 50vw;
+  }
+}
+@media screen and (min-width: 1200px) {
+  footer > div {
+    width: 30vw;
+    max-width: 30vw;
+  }
+}
+@media screen and (max-width: 768px) {
+  footer > div {
+    text-align: right;
+  }
 }
 footer > div code {
   font-family: var(--monospace);
