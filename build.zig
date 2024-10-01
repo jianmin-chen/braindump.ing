@@ -18,4 +18,9 @@ pub fn build(b: *std.Build) !void {
     exe.root_module.addImport("httpz", httpz.module("httpz"));
 
     b.installArtifact(exe);
+
+    const run_exe = b.addRunArtifact(exe);
+
+    const run_step = b.step("run", "Build posts");
+    run_step.dependOn(&run_exe.step);
 }

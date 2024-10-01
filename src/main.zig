@@ -21,14 +21,14 @@ pub fn main() !void {
 
     const allocator = gpa.allocator();
 
-    var opt: Opt = .serve;
+    var opt: Opt = .build;
 
     var args = try std.process.argsWithAllocator(allocator);
     defer args.deinit();
     _ = args.skip();
 
     if (args.next()) |opt_arg| {
-        if (std.mem.eql(u8, opt_arg, "--build")) opt = .build;
+        if (std.mem.eql(u8, opt_arg, "--serve")) opt = .serve;
     }
 
     switch (opt) {
