@@ -15,7 +15,14 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = optimize
     });
+
+    const md = b.dependency("md", .{
+        .target = target,
+        .optimize = optimize
+    });
+
     exe.root_module.addImport("httpz", httpz.module("httpz"));
+    exe.root_module.addImport("md", md.module("md"));
 
     b.installArtifact(exe);
 

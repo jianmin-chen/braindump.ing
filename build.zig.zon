@@ -7,5 +7,9 @@
             .url = "git+https://github.com/karlseguin/http.zig?ref=zig-0.13#7d2ddae87af9b110783085c0ea6b03985faa4584",
             .hash = "12208c1f2c5f730c4c03aabeb0632ade7e21914af03e6510311b449458198d0835d6",
         },
+        .md = .{
+            .url = "git+https://github.com/jianmin-chen/md.zig?ref=main#5032dd8430aa9801488c7882aefa15ed786a731c",
+            .hash = "1220a6e8e3d81705b7f57093f13fc7bfc9e59ee81f32032e5493b39d7983fc6cbac4",
+        }
     },
 }

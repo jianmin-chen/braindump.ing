@@ -1,5 +1,8 @@
 .zig-cache
+zig-cache
+zig-out
 .env
+Dockerfile
 fly.toml
 test.*
 node_modules

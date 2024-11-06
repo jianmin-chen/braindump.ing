@@ -16,10 +16,10 @@ const Subscribe = () => {
         if (submission.success) {
           setSuccess(() => true)
           setInfo(() => "You're subscribed!")
-        } else {
-          setEmail(() => '')
-          setPlaceholder(() => 'Shucks, try again!')
-        }
+        } else throw new Error()
+      }).catch(err => {
+        setEmail(() => '')
+        setPlaceholder(() => 'Shucks, try again!')
       })
   }
 
